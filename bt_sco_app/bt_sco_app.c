@@ -97,7 +97,8 @@ static int do_connect(char *svr)
 	if (bind(sk, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
 		syslog(LOG_ERR, "Can't bind socket: %s (%d)",
 							strerror(errno), errno);
-		goto error;
+		//goto error;
+		BT_SocketFileDescriptorClose(sk);
 	}
 
 	/* Connect to remote device */
@@ -108,7 +109,8 @@ static int do_connect(char *svr)
 	if (connect(sk, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
 		syslog(LOG_ERR, "Can't connect: %s (%d)",
 							strerror(errno), errno);
-		goto error;
+		//goto error;
+		BT_SocketFileDescriptorClose(sk);
 	}
 
 	/* Get connection information */
@@ -118,7 +120,8 @@ static int do_connect(char *svr)
 	if (getsockopt(sk, SOL_SCO, SCO_CONNINFO, &conn, &optlen) < 0) {
 		syslog(LOG_ERR, "Can't get SCO connection information: %s (%d)",
 							strerror(errno), errno);
-		goto error;
+		BT_SocketFileDescriptorClose(sk);
+		//goto error;
 	}
 
 	syslog(LOG_INFO, "Connected [handle %d, class 0x%02x%02x%02x]",
@@ -127,10 +130,17 @@ static int do_connect(char *svr)
 
 	return sk;
 
-error:
-	close(sk);
+
+}
+
+int BT_SocketFileDescriptorClose(int SockFD){
+	int SocFD = SockFD;
+	close(SocFD);
 	return -1;
 }
+
+
+
 
 /** dump_mode Function
  *  This function waits till disconnection is intiated from headset or from
@@ -166,7 +176,7 @@ static void send_hciCmd(int dev_id, int command_length, char **command)
 {
         unsigned char buf[HCI_MAX_EVENT_SIZE], *ptr = buf;
         struct hci_filter flt;
-        hci_event_hdr *hdr;
+        hci_event_hdr *hdr = NULL;
         int i, opt, len, dd;
         uint16_t ocf;
         uint8_t ogf;
